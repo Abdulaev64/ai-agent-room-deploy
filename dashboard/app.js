@@ -9,8 +9,9 @@ const statusLabel = {
   offline: "OFFLINE",
 };
 
-async function getJson(url, options = {}) {
-  const response = await fetch(url, options);
+async function getJson(path, options = {}) {
+  const target = new URL(path, window.location.origin);
+  const response = await fetch(target.toString(), options);
   if (!response.ok) throw new Error("HTTP " + response.status);
   return response.json();
 }
