@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import os
+import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
@@ -20,6 +24,41 @@ app = FastAPI(title="AI Agent Room", version=__version__, description="Isolated 
 app.mount("/assets", StaticFiles(directory=DASHBOARD_DIR), name="assets")
 
 
+def _basic_auth_ok(request: Request) -> bool:
+    expected_user = os.environ.get("AGENT_ROOM_USERNAME")
+    expected_password = os.environ.get("AGENT_ROOM_PASSWORD")
+    if not expected_user or not expected_password:
+        return True
+
+    header = request.headers.get("authorization", "")
+    if not header.startswith("Basic "):
+        return False
+
+    try:
+        decoded = base64.b64decode(header[6:], validate=True).decode("utf-8")
+        supplied_user, supplied_password = decoded.split(":", 1)
+    except (binascii.Error, UnicodeDecodeError, ValueError):
+        return False
+
+    return secrets.compare_digest(supplied_user, expected_user) and secrets.compare_digest(
+        supplied_password, expected_password
+    )
+
+
+@app.middleware("http")
+async def require_dashboard_auth(request: Request, call_next):
+    if request.url.path == "/api/health":
+        return await call_next(request)
+
+    if not _basic_auth_ok(request):
+        return Response(
+            status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="AI Agent Room"'},
+        )
+
+    return await call_next(request)
+
+
 @app.get("/", include_in_schema=False)
 def dashboard() -> FileResponse:
     return FileResponse(DASHBOARD_DIR / "index.html")
@@ -27,7 +66,16 @@ def dashboard() -> FileResponse:
 
 @app.get("/api/health")
 def health() -> dict[str, object]:
-    return {"status": "ok", "version": __version__, "mode": "planning-only", "agent_count": len(get_agents()), "external_mutations_enabled": False}
+    return {
+        "status": "ok",
+        "version": __version__,
+        "mode": "planning-only",
+        "agent_count": len(get_agents()),
+        "external_mutations_enabled": False,
+        "auth_configured": bool(
+            os.environ.get("AGENT_ROOM_USERNAME") and os.environ.get("AGENT_ROOM_PASSWORD")
+        ),
+    }
 
 
 @app.get("/api/agents", response_model=list[AgentView])
