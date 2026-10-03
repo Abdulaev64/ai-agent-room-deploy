@@ -9,6 +9,9 @@ const statusLabel = {
   offline: "OFFLINE",
 };
 
+let currentAgents = [];
+let selectedAgentId = "orchestrator";
+
 async function getJson(path, options = {}) {
   const target = new URL(path, window.location.origin);
   const response = await fetch(target.toString(), options);
@@ -20,27 +23,55 @@ function initials(name) {
   return name.split(/\s+/).map((word) => word[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function renderAgents(agents) {
-  const grid = el("agentGrid");
-  const template = el("agentCardTemplate");
-  grid.replaceChildren();
-
-  agents.forEach((agent) => {
-    const node = template.content.cloneNode(true);
-    node.querySelector(".avatar").textContent = initials(agent.name);
-    node.querySelector(".agent-name").textContent = agent.name;
-    node.querySelector(".agent-role").textContent = agent.role;
-    node.querySelector(".current-task").textContent = agent.current_task || "Нет активной задачи";
-    node.querySelector(".today").textContent = agent.today;
-    node.querySelector(".goal").textContent = agent.goal;
-
-    const status = node.querySelector(".status-pill");
-    status.textContent = statusLabel[agent.status] || agent.status.toUpperCase();
-    status.classList.add(agent.status);
-    grid.appendChild(node);
+function selectAgent(agentId) {
+  selectedAgentId = agentId;
+  document.querySelectorAll(".station").forEach((node) => {
+    node.classList.toggle("selected", node.dataset.agentId === agentId);
   });
 
-  el("agentCount").textContent = agents.length + " agents";
+  const agent = currentAgents.find((item) => item.id === agentId) || currentAgents[0];
+  if (!agent) return;
+
+  el("selectedName").textContent = agent.name;
+  el("selectedRole").textContent = agent.role;
+  el("selectedAvatar").textContent = initials(agent.name);
+  el("selectedTask").textContent = agent.current_task || "Нет активной задачи";
+  el("selectedToday").textContent = agent.today;
+  el("selectedGoal").textContent = agent.goal;
+  el("selectedState").textContent = agent.status === "offline" ? "LINK DOWN" : "READY";
+
+  const status = el("selectedStatus");
+  status.className = "status-pill " + agent.status;
+  status.textContent = statusLabel[agent.status] || agent.status.toUpperCase();
+}
+
+function renderAgents(agents) {
+  currentAgents = agents;
+  const layer = el("stationsLayer");
+  const template = el("stationTemplate");
+  layer.replaceChildren();
+
+  agents.forEach((agent, index) => {
+    const fragment = template.content.cloneNode(true);
+    const station = fragment.querySelector(".station");
+    station.classList.add("pos-" + index, agent.status);
+    station.dataset.agentId = agent.id;
+    station.setAttribute("aria-label", agent.name + " — " + agent.role);
+    station.querySelector(".station-title").textContent = agent.name;
+    station.querySelector(".station-role").textContent = agent.role;
+    station.querySelector(".station-status").textContent = statusLabel[agent.status] || agent.status.toUpperCase();
+    station.addEventListener("click", () => selectAgent(agent.id));
+    layer.appendChild(fragment);
+  });
+
+  const active = agents.filter((agent) => ["working", "verifying", "waiting"].includes(agent.status)).length;
+  el("agentCount").textContent = agents.length;
+  el("activeCount").textContent = active;
+
+  if (!agents.some((agent) => agent.id === selectedAgentId)) {
+    selectedAgentId = agents[0]?.id;
+  }
+  selectAgent(selectedAgentId);
 }
 
 function renderActivity(events) {
@@ -62,17 +93,22 @@ function renderActivity(events) {
 }
 
 async function refresh() {
-  const [health, agents, activity] = await Promise.all([
+  const [health, agents, activity, tasks] = await Promise.all([
     getJson("/api/health"),
     getJson("/api/agents"),
     getJson("/api/activity"),
+    getJson("/api/tasks"),
   ]);
 
   const badge = el("healthBadge");
-  badge.textContent = health.status === "ok" ? "SYSTEM OK" : "SYSTEM ERROR";
-  badge.classList.toggle("ok", health.status === "ok");
+  const systemOk = health.status === "ok";
+  badge.textContent = systemOk ? "SYSTEM OK" : "SYSTEM ERROR";
+  badge.classList.toggle("ok", systemOk);
+  el("wallSystem").textContent = systemOk ? "ONLINE" : "ERROR";
+  el("taskCount").textContent = tasks.length;
+
   el("modeText").textContent = health.mode === "planning-only"
-    ? "Безопасный режим: планирование включено, внешние изменения выключены."
+    ? "Planning-only · внешние изменения заблокированы"
     : "Режим: " + health.mode;
 
   renderAgents(agents);
@@ -96,9 +132,13 @@ async function submitTask() {
       body: JSON.stringify({message}),
     });
 
-    result.textContent = "Главный исполнитель: " + plan.primary_agent_id + ". Участники: " + plan.assigned_agent_ids.join(", ") + ". " + plan.reason;
+    result.textContent =
+      "Главный исполнитель: " + plan.primary_agent_id +
+      ". Участники: " + plan.assigned_agent_ids.join(", ") +
+      ". " + plan.reason;
     result.hidden = false;
     input.value = "";
+    selectedAgentId = plan.primary_agent_id;
     await refresh();
   } catch (error) {
     result.textContent = "Ошибка: " + error.message;
@@ -115,5 +155,6 @@ el("taskInput").addEventListener("keydown", (event) => {
 
 refresh().catch((error) => {
   el("healthBadge").textContent = "SYSTEM ERROR";
+  el("wallSystem").textContent = "ERROR";
   el("modeText").textContent = "Не удалось загрузить данные: " + error.message;
 });
