@@ -193,3 +193,5 @@ h2 { font-size:19px; margin:3px 0 0; letter-spacing:-.025em; }
   .three-wrap { height:540px; min-height:540px; }
   .scene-help { font-size:7px; max-width:90%; white-space:normal; text-align:center; }
 }
+
+.webgl-fallback[hidden] { display:none !important; }
