@@ -7,43 +7,103 @@
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
-  <div class="shell">
+  <div class="app-shell">
     <header class="topbar">
-      <div>
-        <div class="eyebrow">AI AGENT ROOM</div>
-        <h1>Команда виртуальных сотрудников</h1>
-        <p id="modeText">Подключение...</p>
+      <div class="brand">
+        <div class="brand-mark">AR</div>
+        <div>
+          <div class="eyebrow">AI AGENT ROOM</div>
+          <h1>Virtual Operations HQ</h1>
+          <p id="modeText">Подключение...</p>
+        </div>
       </div>
-      <div class="health" id="healthBadge">CHECKING</div>
+      <div class="top-metrics">
+        <div class="metric"><span>AGENTS</span><strong id="agentCount">0</strong></div>
+        <div class="metric"><span>ACTIVE</span><strong id="activeCount">0</strong></div>
+        <div class="metric"><span>TASKS</span><strong id="taskCount">0</strong></div>
+        <div class="health" id="healthBadge">CHECKING</div>
+      </div>
     </header>
 
-    <main class="layout">
-      <section class="room-panel">
-        <div class="section-heading">
+    <main class="workspace">
+      <section class="office-panel">
+        <div class="office-toolbar">
           <div>
-            <span class="eyebrow">TEAM</span>
-            <h2>Агенты</h2>
+            <span class="eyebrow">LIVE FLOOR</span>
+            <h2>Комната агентов</h2>
           </div>
-          <span class="muted" id="agentCount">0 agents</span>
+          <div class="legend">
+            <span><i class="dot active"></i> ACTIVE</span>
+            <span><i class="dot idle"></i> IDLE</span>
+            <span><i class="dot offline"></i> OFFLINE</span>
+          </div>
         </div>
-        <div class="agent-grid" id="agentGrid"></div>
+
+        <div class="office-viewport">
+          <div class="office-scene" id="officeScene">
+            <div class="back-wall">
+              <div class="wall-logo">AI AGENT ROOM</div>
+              <div class="wall-subtitle">UST-LUGA OPERATIONS</div>
+              <div class="wall-screen">
+                <span>SYSTEM</span>
+                <strong id="wallSystem">ONLINE</strong>
+              </div>
+            </div>
+
+            <div class="floor-grid"></div>
+
+            <div class="zone-label zone-a">PORTAL & DATA</div>
+            <div class="zone-label zone-b">DOCUMENTS & QA</div>
+            <div class="zone-label zone-c">CONTROL</div>
+
+            <div id="stationsLayer"></div>
+
+            <div class="center-table">
+              <div class="table-screen">LIVE<br>OPERATIONS</div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <aside class="side-panel">
-        <section class="composer card">
-          <span class="eyebrow">ORCHESTRATOR</span>
-          <h2>Поставить задачу</h2>
+      <aside class="control-panel">
+        <section class="agent-inspector panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">SELECTED AGENT</span>
+              <h2 id="selectedName">Orchestrator</h2>
+            </div>
+            <span class="status-pill idle" id="selectedStatus">IDLE</span>
+          </div>
+          <p class="selected-role" id="selectedRole">Главный диспетчер</p>
+          <div class="selected-avatar" id="selectedAvatar">O</div>
+          <div class="selected-task-label">CURRENT TASK</div>
+          <div class="selected-task" id="selectedTask">Нет активной задачи</div>
+          <div class="inspector-stats">
+            <div><span>TODAY</span><strong id="selectedToday">0</strong></div>
+            <div><span>GOAL</span><strong id="selectedGoal">0</strong></div>
+            <div><span>STATE</span><strong id="selectedState">READY</strong></div>
+          </div>
+        </section>
+
+        <section class="composer panel">
+          <div class="panel-head compact">
+            <div>
+              <span class="eyebrow">ORCHESTRATOR</span>
+              <h2>Поставить задачу</h2>
+            </div>
+          </div>
           <textarea id="taskInput" maxlength="4000" placeholder="Например: проверь синхронизацию сотрудника с Excel"></textarea>
-          <button id="sendTask">Сформировать план</button>
+          <button id="sendTask">Отправить в работу</button>
           <div id="planResult" class="plan-result" hidden></div>
         </section>
 
-        <section class="activity card">
-          <div class="section-heading compact">
+        <section class="activity panel">
+          <div class="panel-head compact">
             <div>
               <span class="eyebrow">LIVE</span>
               <h2>Activity Feed</h2>
             </div>
+            <span class="pulse-label"><i></i> LIVE</span>
           </div>
           <div id="activityFeed" class="feed"></div>
         </section>
@@ -51,23 +111,25 @@
     </main>
   </div>
 
-  <template id="agentCardTemplate">
-    <article class="agent-card">
-      <div class="desk-light"></div>
-      <div class="avatar"></div>
-      <div class="agent-copy">
-        <div class="agent-title-row">
-          <h3 class="agent-name"></h3>
-          <span class="status-pill"></span>
-        </div>
-        <p class="agent-role"></p>
-        <p class="current-task">Нет активной задачи</p>
-        <div class="agent-metrics">
-          <div><span>TODAY</span><strong class="today">0</strong></div>
-          <div><span>GOAL</span><strong class="goal">0</strong></div>
-        </div>
-      </div>
-    </article>
+  <template id="stationTemplate">
+    <button class="station" type="button">
+      <span class="station-glow"></span>
+      <span class="desk">
+        <span class="desk-top"></span>
+        <span class="monitor"><span class="monitor-screen"></span></span>
+        <span class="keyboard"></span>
+        <span class="chair"></span>
+      </span>
+      <span class="person">
+        <span class="person-head"></span>
+        <span class="person-body"></span>
+      </span>
+      <span class="station-card">
+        <span class="station-title"></span>
+        <span class="station-role"></span>
+        <span class="station-status"></span>
+      </span>
+    </button>
   </template>
 
   <script src="/assets/app.js" defer></script>
