@@ -2,15 +2,15 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.m
 
 const el=id=>document.getElementById(id);
 const statusLabel={idle:"IDLE",working:"ACTIVE",waiting:"WAITING",verifying:"VERIFYING",error:"ERROR",offline:"OFFLINE"};
-const palette=["#51d8ff","#57f0a7","#a979ff","#ff66bf","#ffd85f","#5fa8ff","#ff885f"];
-const paletteHex=[0x51d8ff,0x57f0a7,0xa979ff,0xff66bf,0xffd85f,0x5fa8ff,0xff885f];
+const palette=["#46d7ff","#57e59d","#ffbf3f","#58a9ff","#73e6ff","#9ccf45","#ffa24d"];
+const paletteHex=[0x46d7ff,0x57e59d,0xffbf3f,0x58a9ff,0x73e6ff,0x9ccf45,0xffa24d];
 
 const room={
   renderer:null,scene:null,camera:null,raycaster:new THREE.Raycaster(),pointer:new THREE.Vector2(),
   agents:[],stationGroups:new Map(),agentAnim:new Map(),labels:new Map(),clickable:[],decor:[],
   selectedAgentId:"orchestrator",
   target:new THREE.Vector3(0,1.4,0),desiredTarget:new THREE.Vector3(0,1.4,0),
-  desiredCamera:new THREE.Vector3(11.5,10.8,18.8),
+  desiredCamera:new THREE.Vector3(12.8,11.8,19.6),
   dragging:false,dragMoved:false,downX:0,downY:0,lastX:0,lastY:0,
   clock:new THREE.Clock(),tourActive:false,tourIndex:0,tourNextAt:0
 };
@@ -62,66 +62,87 @@ function makeTextTexture(title,subtitle,color){
 }
 
 function buildStage(){
-  const stage=new THREE.Mesh(new THREE.CylinderGeometry(11.6,11.9,.34,72),mat(0x10131a,.72,.2));
-  stage.position.y=-.16;stage.receiveShadow=true;room.scene.add(stage);
+  const steel=mat(0x26323b,.6,.28);
+  const steelDark=mat(0x111a21,.72,.2);
+  const safety=mat(0xffb62e,.34,.32,0x6b4300,.16);
+  const cyanMat=mat(0x35cfff,.24,.38,0x35cfff,1.6);
 
-  const inner=new THREE.Mesh(new THREE.CylinderGeometry(10.7,10.9,.08,72),mat(0x080b10,.86,.08));
-  inner.position.y=.04;inner.receiveShadow=true;room.scene.add(inner);
+  const stage=new THREE.Mesh(new THREE.CylinderGeometry(11.7,12.0,.38,72),mat(0x29343c,.62,.24));
+  stage.position.y=-.18;stage.receiveShadow=true;room.scene.add(stage);
+  const inner=new THREE.Mesh(new THREE.CylinderGeometry(10.8,11.0,.10,72),mat(0x17232b,.72,.16));
+  inner.position.y=.05;inner.receiveShadow=true;room.scene.add(inner);
 
-  const ring=new THREE.Mesh(new THREE.RingGeometry(8.5,8.57,96),new THREE.MeshBasicMaterial({color:0x2f8fbf,transparent:true,opacity:.35,side:THREE.DoubleSide}));
-  ring.rotation.x=-Math.PI/2;ring.position.y=.09;room.scene.add(ring);
+  const ringOuter=new THREE.Mesh(new THREE.RingGeometry(8.85,9.02,96),new THREE.MeshBasicMaterial({color:0xffb62e,transparent:true,opacity:.82,side:THREE.DoubleSide}));
+  ringOuter.rotation.x=-Math.PI/2;ringOuter.position.y=.11;room.scene.add(ringOuter);
+  const ringInner=new THREE.Mesh(new THREE.RingGeometry(5.15,5.23,96),new THREE.MeshBasicMaterial({color:0x42d9ff,transparent:true,opacity:.48,side:THREE.DoubleSide}));
+  ringInner.rotation.x=-Math.PI/2;ringInner.position.y=.115;room.scene.add(ringInner);
 
-  const back=new THREE.Mesh(new THREE.PlaneGeometry(23,8),mat(0x06080d,.92,.04));
-  back.position.set(0,4.1,-8.9);room.scene.add(back);
+  for(let i=0;i<18;i++){
+    const angle=(i/18)*Math.PI*2;
+    const stripe=box(room.scene,[.72,.035,.22],[Math.cos(angle)*9.45,.14,Math.sin(angle)*9.45],i%2===0?safety:steelDark);
+    stripe.rotation.y=-angle;
+  }
 
-  const lightGeo=new THREE.BoxGeometry(.12,.12,.08);
-  for(let row=0;row<8;row++){
-    for(let col=0;col<28;col++){
-      if((row+col)%3===0)continue;
-      const tone=[0x4dc9ff,0x9f65ff,0x56e2a1,0xff66be][(row*7+col)%4];
-      const m=new THREE.MeshBasicMaterial({color:tone,transparent:true,opacity:.18+((row+col)%4)*.08});
-      const sq=new THREE.Mesh(lightGeo,m);
-      sq.position.set(-10.5+col*.78,1.1+row*.58,-8.77);
-      room.scene.add(sq);
+  const back=box(room.scene,[23.8,.28,7.4],[0,3.72,-8.95],mat(0x182630,.72,.18));
+  const upper=box(room.scene,[23.8,.18,1.0],[0,6.85,-8.8],steelDark);
+  const beamMat=mat(0x31434f,.46,.48);
+  for(const x of [-11,-7,-3,3,7,11]) box(room.scene,[.20,7.0,.25],[x,3.5,-8.72],beamMat);
+
+  const mainTex=makeTextTexture("ОХРАНА ТРУДА","98% КОНТРОЛЬ","#49d8ff");
+  const mainPanel=new THREE.Mesh(new THREE.PlaneGeometry(7.2,2.65),new THREE.MeshStandardMaterial({map:mainTex,emissive:0x2b7288,emissiveMap:mainTex,emissiveIntensity:.8,side:THREE.DoubleSide}));
+  mainPanel.position.set(0,4.15,-8.73);room.scene.add(mainPanel);
+
+  const riskTex=makeTextTexture("КОНТРОЛЬ РИСКОВ","3 ОТКРЫТО","#ffb62e");
+  const riskPanel=new THREE.Mesh(new THREE.PlaneGeometry(4.0,2.25),new THREE.MeshStandardMaterial({map:riskTex,emissive:0x7a4e0c,emissiveMap:riskTex,emissiveIntensity:.72,side:THREE.DoubleSide}));
+  riskPanel.position.set(-8.15,4.0,-8.72);room.scene.add(riskPanel);
+
+  const ppeTex=makeTextTexture("СИЗ И ИНСТРУКТАЖИ","100%","#57e59d");
+  const ppePanel=new THREE.Mesh(new THREE.PlaneGeometry(4.0,2.25),new THREE.MeshStandardMaterial({map:ppeTex,emissive:0x1c6644,emissiveMap:ppeTex,emissiveIntensity:.72,side:THREE.DoubleSide}));
+  ppePanel.position.set(8.15,4.0,-8.72);room.scene.add(ppePanel);
+
+  // PPE racks with helmets and safety vests.
+  for(const side of [-1,1]){
+    const x=side*10.55;
+    box(room.scene,[2.0,2.9,.58],[x,1.5,-6.9],steelDark);
+    for(let r=0;r<3;r++) box(room.scene,[1.7,.08,.50],[x,.52+r*.88,-6.62],steel);
+    for(let h=0;h<3;h++){
+      const helmet=new THREE.Mesh(new THREE.SphereGeometry(.22,18,10,0,Math.PI*2,0,Math.PI*.55),safety);
+      helmet.position.set(x-.52+h*.52,1.28,-6.32);helmet.castShadow=true;room.scene.add(helmet);
     }
+    const vest=box(room.scene,[.72,1.12,.08],[x,2.45,-6.58],mat(0xf5c52f,.65,.05));
+    box(room.scene,[.58,.10,.09],[x,2.65,-6.52],mat(0xd7f1f5,.5,.05));
   }
 
-  const topFrames=[
-    {w:15.0,d:5.0,y:6.3,c:0x5c6cff},
-    {w:11.5,d:3.8,y:6.0,c:0xff5be3},
-    {w:8.0,d:2.7,y:5.7,c:0x4ed8ff},
+  // Industrial silhouettes: tanks/towers behind the safety wall sections.
+  for(const x of [-5.5,5.3]){
+    const tower=cyl(room.scene,.65,.72,2.1,[x,1.25,-7.25],mat(0x425761,.45,.55),24);
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(.67,20,10,0,Math.PI*2,0,Math.PI*.5),mat(0x4c626d,.42,.52));
+    dome.position.set(x,2.3,-7.25);dome.castShadow=true;room.scene.add(dome);
+    box(room.scene,[.12,2.8,.12],[x+.95,1.65,-7.2],beamMat);
+    box(room.scene,[1.9,.08,.08],[x+.95,2.85,-7.2],cyanMat);
+  }
+
+  // Warm/cyan ceiling rails inspired by industrial safety lighting.
+  const rails=[
+    {w:18.0,d:5.3,y:6.45,c:0x36d2ff},
+    {w:15.0,d:4.5,y:6.12,c:0xffad32},
+    {w:11.5,d:3.4,y:5.8,c:0x55e0ff},
   ];
-  for(const f of topFrames){
-    const g=new THREE.Group();
-    const m=mat(f.c,.2,.35,f.c,2.3);
-    box(g,[f.w,.08,.08],[0,0,-f.d/2],m);
-    box(g,[f.w,.08,.08],[0,0,f.d/2],m);
-    box(g,[.08,.08,f.d],[-f.w/2,0,0],m);
-    box(g,[.08,.08,f.d],[f.w/2,0,0],m);
-    g.position.set(0,f.y,-1.0);
-    g.rotation.y=.05;
-    g.userData.neonFrame=true;
-    g.userData.phase=f.y;
-    room.scene.add(g);room.decor.push(g);
+  for(const f of rails){
+    const g=new THREE.Group(),m=mat(f.c,.2,.4,f.c,1.7);
+    box(g,[f.w,.08,.08],[0,0,-f.d/2],m);box(g,[f.w,.08,.08],[0,0,f.d/2],m);
+    box(g,[.08,.08,f.d],[-f.w/2,0,0],m);box(g,[.08,.08,f.d],[f.w/2,0,0],m);
+    g.position.set(0,f.y,-.7);room.scene.add(g);room.decor.push(g);
   }
 
-  const floorArc=new THREE.Mesh(new THREE.RingGeometry(4.6,7.8,100,1,Math.PI*.12,Math.PI*.76),
-    new THREE.MeshBasicMaterial({color:0x276681,transparent:true,opacity:.22,side:THREE.DoubleSide}));
-  floorArc.rotation.x=-Math.PI/2;floorArc.rotation.z=Math.PI*.06;floorArc.position.y=.085;room.scene.add(floorArc);
-
-  const orbGeo=new THREE.IcosahedronGeometry(.78,2);
-  const orb=new THREE.Mesh(orbGeo,new THREE.MeshBasicMaterial({color:0x62cbff,wireframe:true,transparent:true,opacity:.55}));
-  orb.position.set(8.4,1.0,5.8);orb.userData.orb=true;room.scene.add(orb);room.decor.push(orb);
-
-  const leftTex=makeTextTexture("LIVE OPS","07 AGENTS",palette[0]);
-  const leftPanel=new THREE.Mesh(new THREE.PlaneGeometry(3.4,1.7),new THREE.MeshStandardMaterial({map:leftTex,emissive:0x24596c,emissiveMap:leftTex,emissiveIntensity:.65,side:THREE.DoubleSide}));
-  leftPanel.position.set(-9.2,3.5,-8.62);room.scene.add(leftPanel);
-
-  const rightTex=makeTextTexture("PIPELINE","READY",palette[3]);
-  const rightPanel=new THREE.Mesh(new THREE.PlaneGeometry(3.4,1.7),new THREE.MeshStandardMaterial({map:rightTex,emissive:0x51254c,emissiveMap:rightTex,emissiveIntensity:.65,side:THREE.DoubleSide}));
-  rightPanel.position.set(9.2,3.5,-8.62);room.scene.add(rightPanel);
+  // Safety slogans / zone plaques.
+  const leftTex=makeTextTexture("БЕЗОПАСНАЯ РАБОТА","ОБЩАЯ ЦЕЛЬ","#ffbd3b");
+  const left=new THREE.Mesh(new THREE.PlaneGeometry(3.4,1.6),new THREE.MeshStandardMaterial({map:leftTex,emissive:0x6b490c,emissiveMap:leftTex,emissiveIntensity:.65,side:THREE.DoubleSide}));
+  left.position.set(-9.0,2.25,-8.65);room.scene.add(left);
+  const rightTex=makeTextTexture("ПРЕДУПРЕЖДАЕМ РИСКИ","СОХРАНЯЕМ ЖИЗНИ","#45d7ff");
+  const right=new THREE.Mesh(new THREE.PlaneGeometry(3.4,1.6),new THREE.MeshStandardMaterial({map:rightTex,emissive:0x245f72,emissiveMap:rightTex,emissiveIntensity:.65,side:THREE.DoubleSide}));
+  right.position.set(9.0,2.25,-8.65);room.scene.add(right);
 }
-
 function buildPerson(agent,index,color){
   const p=new THREE.Group();p.position.set(0,0,1.02);
   const skinMat=mat(skin[index%skin.length],.75,.01),shirtMat=mat(shirt[index%shirt.length],.55,.1),dark=mat(0x101318,.65,.1);
@@ -148,7 +169,7 @@ function buildPerson(agent,index,color){
 function buildStation(agent,index){
   const cfg=stationLayout[index],g=new THREE.Group();g.position.set(...cfg.p);g.rotation.y=cfg.r;
   const color=statusColor(agent.status,index),cssColor=agent.status==="offline"?"#ff5965":palette[index%palette.length];
-  const deskMat=mat(0x1a1f27,.45,.35),metal=mat(0x0b0e12,.4,.55);
+  const deskMat=mat(0x43505a,.42,.38),metal=mat(0x1d2931,.36,.58);
   box(g,[2.55,.18,1.1],[0,1.0,0],deskMat);
   box(g,[.12,.9,.12],[-.95,.48,-.34],metal);box(g,[.12,.9,.12],[.95,.48,-.34],metal);
   box(g,[.12,.9,.12],[-.95,.48,.34],metal);box(g,[.12,.9,.12],[.95,.48,.34],metal);
@@ -160,8 +181,8 @@ function buildStation(agent,index){
   box(g,[.08,.45,.08],[0,1.32,-.12],metal);
   box(g,[.64,.05,.27],[0,1.08,.08],mat(0x080b0f,.6,.2));
 
-  const chairSeat=box(g,[.82,.15,.78],[0,.62,.98],mat(0x0e1218,.5,.35));
-  const chairBack=box(g,[.82,.88,.15],[0,1.13,1.32],mat(0x0e1218,.5,.35));
+  const chairSeat=box(g,[.82,.15,.78],[0,.62,.98],mat(0x26333d,.46,.38));
+  const chairBack=box(g,[.82,.88,.15],[0,1.13,1.32],mat(0x26333d,.46,.38));
 
   const person=buildPerson(agent,index,color);g.add(person);room.agentAnim.set(agent.id,person.userData.anim);
 
@@ -183,11 +204,12 @@ function buildStation(agent,index){
 }
 
 function lighting(){
-  room.scene.add(new THREE.HemisphereLight(0x7287aa,0x030405,.9));
-  const key=new THREE.DirectionalLight(0xc9d7ff,1.25);key.position.set(5,12,10);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
+  room.scene.add(new THREE.HemisphereLight(0xb7dcf2,0x182027,1.55));
+  const key=new THREE.DirectionalLight(0xf0f7ff,2.15);key.position.set(6,13,11);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
   key.shadow.camera.left=-14;key.shadow.camera.right=14;key.shadow.camera.top=14;key.shadow.camera.bottom=-14;room.scene.add(key);
-  const purple=new THREE.PointLight(0x765dff,1.0,22,2);purple.position.set(-7,6,-2);room.scene.add(purple);
-  const cyan=new THREE.PointLight(0x55dfff,.85,22,2);cyan.position.set(8,5,2);room.scene.add(cyan);
+  const amber=new THREE.PointLight(0xffb13b,1.35,24,2);amber.position.set(-8,5.5,-1);room.scene.add(amber);
+  const cyan=new THREE.PointLight(0x4fdcff,1.45,24,2);cyan.position.set(8,6,2);room.scene.add(cyan);
+  const front=new THREE.DirectionalLight(0x9fdfff,.75);front.position.set(0,6,14);room.scene.add(front);
 }
 
 function clearStations(){
@@ -217,7 +239,7 @@ function focusAgent(id){
   room.desiredCamera.copy(p).add(new THREE.Vector3(4.7,4.2,6.5))
 }
 function selectAgent(id,focus=true){room.selectedAgentId=id;const a=room.agents.find(x=>x.id===id)||room.agents[0];updateInspector(a);for(const [k,t] of room.labels)t.classList.toggle("selected",k===id);if(focus)focusAgent(id)}
-function resetCamera(){room.tourActive=false;el("tourView")?.classList.remove("active");room.desiredTarget.set(0,1.35,-.3);room.desiredCamera.set(11.5,10.8,18.8)}
+function resetCamera(){room.tourActive=false;el("tourView")?.classList.remove("active");room.desiredTarget.set(0,1.35,-.3);room.desiredCamera.set(12.8,11.8,19.6)}
 function toggleTour(){room.tourActive=!room.tourActive;el("tourView").classList.toggle("active",room.tourActive);if(room.tourActive){room.tourIndex=0;room.tourNextAt=0}else resetCamera()}
 function updateTour(t){if(!room.tourActive||!room.agents.length||t<room.tourNextAt)return;const a=room.agents[room.tourIndex%room.agents.length];selectAgent(a.id,true);room.tourIndex=(room.tourIndex+1)%room.agents.length;room.tourNextAt=t+4.3}
 
@@ -255,8 +277,8 @@ function init3D(){
     const ctx=canvas.getContext("webgl2",{antialias:true,alpha:false,powerPreference:"high-performance"})||canvas.getContext("webgl",{antialias:true,alpha:false,powerPreference:"high-performance"});
     if(!ctx)throw new Error("Браузер не выдал WebGL-контекст");
     room.renderer=new THREE.WebGLRenderer({canvas,context:ctx,antialias:true,powerPreference:"high-performance"});room.renderer.shadowMap.enabled=true;room.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    room.renderer.outputColorSpace=THREE.SRGBColorSpace;room.renderer.toneMapping=THREE.ACESFilmicToneMapping;room.renderer.toneMappingExposure=.95;
-    room.scene=new THREE.Scene();room.scene.background=new THREE.Color(0x020305);room.scene.fog=new THREE.FogExp2(0x020305,.012);
+    room.renderer.outputColorSpace=THREE.SRGBColorSpace;room.renderer.toneMapping=THREE.ACESFilmicToneMapping;room.renderer.toneMappingExposure=1.22;
+    room.scene=new THREE.Scene();room.scene.background=new THREE.Color(0x07121a);room.scene.fog=new THREE.FogExp2(0x07121a,.0085);
     room.camera=new THREE.PerspectiveCamera(38,1,.1,80);room.camera.position.copy(room.desiredCamera);room.camera.lookAt(room.target);
     buildStage();lighting();resize();interactions();window.addEventListener("resize",resize);el("resetView").addEventListener("click",resetCamera);el("tourView").addEventListener("click",toggleTour);
     document.documentElement.dataset.webglReady="starting";animate()
