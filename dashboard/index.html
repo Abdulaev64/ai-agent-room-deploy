@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Agent Room</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=room-0.2.0">
+  <title>AI Agent Room 3D</title>
+  <link rel="stylesheet" href="/assets/styles.css?v=room-0.3.0">
 </head>
 <body>
   <div class="app-shell">
@@ -12,7 +12,7 @@
       <div class="brand">
         <div class="brand-mark">AR</div>
         <div>
-          <div class="eyebrow">AI AGENT ROOM</div>
+          <div class="eyebrow">AI AGENT ROOM · 3D</div>
           <h1>Virtual Operations HQ</h1>
           <p id="modeText">Подключение...</p>
         </div>
@@ -29,38 +29,34 @@
       <section class="office-panel">
         <div class="office-toolbar">
           <div>
-            <span class="eyebrow">LIVE FLOOR</span>
+            <span class="eyebrow">LIVE 3D FLOOR</span>
             <h2>Комната агентов</h2>
           </div>
-          <div class="legend">
-            <span><i class="dot active"></i> ACTIVE</span>
-            <span><i class="dot idle"></i> IDLE</span>
-            <span><i class="dot offline"></i> OFFLINE</span>
+          <div class="toolbar-actions">
+            <div class="legend">
+              <span><i class="dot active"></i> ACTIVE</span>
+              <span><i class="dot idle"></i> IDLE</span>
+              <span><i class="dot offline"></i> OFFLINE</span>
+            </div>
+            <button class="ghost-button" id="resetView" type="button">Общий вид</button>
           </div>
         </div>
 
-        <div class="office-viewport">
-          <div class="office-scene" id="officeScene">
-            <div class="back-wall">
-              <div class="wall-logo">AI AGENT ROOM</div>
-              <div class="wall-subtitle">UST-LUGA OPERATIONS</div>
-              <div class="wall-screen">
-                <span>SYSTEM</span>
-                <strong id="wallSystem">ONLINE</strong>
-              </div>
-            </div>
-
-            <div class="floor-grid"></div>
-
-            <div class="zone-label zone-a">PORTAL & DATA</div>
-            <div class="zone-label zone-b">DOCUMENTS & QA</div>
-            <div class="zone-label zone-c">CONTROL</div>
-
-            <div id="stationsLayer"></div>
-
-            <div class="center-table">
-              <div class="table-screen">LIVE<br>OPERATIONS</div>
-            </div>
+        <div class="three-wrap" id="threeWrap">
+          <canvas id="roomCanvas" aria-label="3D комната AI-агентов"></canvas>
+          <div class="label-layer" id="labelLayer" aria-hidden="true"></div>
+          <div class="scene-hud scene-hud-left">
+            <span>UST-LUGA OPERATIONS</span>
+            <strong>AI AGENT ROOM</strong>
+          </div>
+          <div class="scene-hud scene-hud-right">
+            <span>WEBGL</span>
+            <strong id="renderStatus">STARTING</strong>
+          </div>
+          <div class="scene-help">ЛКМ: выбрать агента · потянуть: повернуть · колесо: масштаб</div>
+          <div class="webgl-fallback" id="webglFallback" hidden>
+            <strong>3D не запустился</strong>
+            <span id="fallbackText">Проверяю поддержку WebGL…</span>
           </div>
         </div>
       </section>
@@ -111,27 +107,6 @@
     </main>
   </div>
 
-  <template id="stationTemplate">
-    <button class="station" type="button">
-      <span class="station-glow"></span>
-      <span class="desk">
-        <span class="desk-top"></span>
-        <span class="monitor"><span class="monitor-screen"></span></span>
-        <span class="keyboard"></span>
-        <span class="chair"></span>
-      </span>
-      <span class="person">
-        <span class="person-head"></span>
-        <span class="person-body"></span>
-      </span>
-      <span class="station-card">
-        <span class="station-title"></span>
-        <span class="station-role"></span>
-        <span class="station-status"></span>
-      </span>
-    </button>
-  </template>
-
-  <script src="/assets/app.js?v=room-0.2.0" defer></script>
+  <script type="module" src="/assets/app.js?v=room-0.3.0"></script>
 </body>
 </html>
