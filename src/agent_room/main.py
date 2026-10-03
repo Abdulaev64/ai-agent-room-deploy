@@ -46,17 +46,21 @@ def _basic_auth_ok(request: Request) -> bool:
 
 
 @app.middleware("http")
-async def require_dashboard_auth(request: Request, call_next):
-    if request.url.path == "/api/health":
-        return await call_next(request)
-
-    if not _basic_auth_ok(request):
+async def dashboard_security_and_cache(request: Request, call_next):
+    if request.url.path != "/api/health" and not _basic_auth_ok(request):
         return Response(
             status_code=401,
             headers={"WWW-Authenticate": 'Basic realm="AI Agent Room"'},
         )
 
-    return await call_next(request)
+    response = await call_next(request)
+
+    if request.url.path == "/" or request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+    return response
 
 
 @app.get("/", include_in_schema=False)
