@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Agent Room 3D</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=room-0.3.1">
+  <link rel="stylesheet" href="/assets/styles.css?v=room-0.4.0">
 </head>
 <body>
   <div class="app-shell">
@@ -12,7 +12,7 @@
       <div class="brand">
         <div class="brand-mark">AR</div>
         <div>
-          <div class="eyebrow">AI AGENT ROOM · 3D</div>
+          <div class="eyebrow">AI AGENT ROOM · 3D V2</div>
           <h1>Virtual Operations HQ</h1>
           <p id="modeText">Подключение...</p>
         </div>
@@ -38,7 +38,7 @@
               <span><i class="dot idle"></i> IDLE</span>
               <span><i class="dot offline"></i> OFFLINE</span>
             </div>
-            <button class="ghost-button" id="resetView" type="button">Общий вид</button>
+            <button class="ghost-button" id="tourView" type="button">Авто-тур</button><button class="ghost-button" id="resetView" type="button">Общий вид</button>
           </div>
         </div>
 
@@ -53,7 +53,7 @@
             <span>WEBGL</span>
             <strong id="renderStatus">STARTING</strong>
           </div>
-          <div class="scene-help">ЛКМ: выбрать агента · потянуть: повернуть · колесо: масштаб</div>
+          <div class="scene-help">ЛКМ: выбрать агента · потянуть: повернуть · колесо: масштаб · авто-тур: обзор команды</div>
           <div class="webgl-fallback" id="webglFallback" hidden>
             <strong>3D не запустился</strong>
             <span id="fallbackText">Проверяю поддержку WebGL…</span>
@@ -107,6 +107,6 @@
     </main>
   </div>
 
-  <script type="module" src="/assets/app.js?v=room-0.3.1"></script>
+  <script type="module" src="/assets/app.js?v=room-0.4.0"></script>
 </body>
 </html>
