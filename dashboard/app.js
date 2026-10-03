@@ -10,19 +10,22 @@ const room={
   agents:[],stationGroups:new Map(),agentAnim:new Map(),labels:new Map(),clickable:[],decor:[],
   selectedAgentId:"orchestrator",
   target:new THREE.Vector3(0,1.4,0),desiredTarget:new THREE.Vector3(0,1.4,0),
-  desiredCamera:new THREE.Vector3(12.8,11.8,19.6),
+  desiredCamera:new THREE.Vector3(12.2,12.8,21.5),
   dragging:false,dragMoved:false,downX:0,downY:0,lastX:0,lastY:0,
   clock:new THREE.Clock(),tourActive:false,tourIndex:0,tourNextAt:0
 };
 
 const stationLayout=[
-  {p:[0,0,-4.9],r:0},
-  {p:[-6.5,0,-2.5],r:.32},
-  {p:[-3.4,0,-1.2],r:.16},
-  {p:[6.5,0,-2.5],r:-.32},
-  {p:[-6.4,0,2.1],r:.55},
-  {p:[0,0,3.7],r:0},
-  {p:[6.4,0,2.1],r:-.55},
+  // Orchestrator — отдельное место руководителя по центру.
+  {p:[0,0,-5.15],r:0},
+  // Первый рабочий ряд.
+  {p:[-5.3,0,-1.9],r:0},
+  {p:[0,0,-1.9],r:0},
+  {p:[5.3,0,-1.9],r:0},
+  // Второй рабочий ряд.
+  {p:[-5.3,0,2.15],r:0},
+  {p:[0,0,2.15],r:0},
+  {p:[5.3,0,2.15],r:0},
 ];
 
 const skin=[0xc8916c,0xb97655,0xd6a280,0x9b674e,0xc98e68,0xab7458,0xd0a081];
@@ -72,15 +75,18 @@ function buildStage(){
   const inner=new THREE.Mesh(new THREE.CylinderGeometry(10.8,11.0,.10,72),mat(0x24343e,.64,.18));
   inner.position.y=.05;inner.receiveShadow=true;room.scene.add(inner);
 
-  const ringOuter=new THREE.Mesh(new THREE.RingGeometry(8.85,9.02,96),new THREE.MeshBasicMaterial({color:0xffb62e,transparent:true,opacity:.82,side:THREE.DoubleSide}));
-  ringOuter.rotation.x=-Math.PI/2;ringOuter.position.y=.11;room.scene.add(ringOuter);
-  const ringInner=new THREE.Mesh(new THREE.RingGeometry(5.15,5.23,96),new THREE.MeshBasicMaterial({color:0x42d9ff,transparent:true,opacity:.48,side:THREE.DoubleSide}));
-  ringInner.rotation.x=-Math.PI/2;ringInner.position.y=.115;room.scene.add(ringInner);
-
-  for(let i=0;i<18;i++){
-    const angle=(i/18)*Math.PI*2;
-    const stripe=box(room.scene,[.72,.035,.22],[Math.cos(angle)*9.45,.14,Math.sin(angle)*9.45],i%2===0?safety:steelDark);
-    stripe.rotation.y=-angle;
+  // Прямые линии и центральный проход вместо случайного кругового построения.
+  box(room.scene,[15.8,.025,.10],[0,.115,-3.55],cyanMat);
+  box(room.scene,[15.8,.025,.10],[0,.115,.05],cyanMat);
+  box(room.scene,[15.8,.025,.10],[0,.115,4.05],cyanMat);
+  box(room.scene,[.10,.025,9.4],[0,.118,.25],safety);
+  for(const x of [-7.7,7.7]){
+    box(room.scene,[.18,.03,9.4],[x,.12,.25],safety);
+  }
+  // Маркеры безопасного прохода.
+  for(let z=-3.1;z<=3.6;z+=1.15){
+    box(room.scene,[.42,.03,.12],[-.42,.125,z],safety);
+    box(room.scene,[.42,.03,.12],[.42,.125,z],safety);
   }
 
   const back=box(room.scene,[23.8,.28,7.4],[0,3.72,-8.95],mat(0x243641,.62,.20));
@@ -169,8 +175,9 @@ function buildPerson(agent,index,color){
 function buildStation(agent,index){
   const cfg=stationLayout[index],g=new THREE.Group();g.position.set(...cfg.p);g.rotation.y=cfg.r;
   const color=statusColor(agent.status,index),cssColor=agent.status==="offline"?"#ff5965":palette[index%palette.length];
-  const deskMat=mat(0x43505a,.42,.38),metal=mat(0x1d2931,.36,.58);
-  box(g,[2.55,.18,1.1],[0,1.0,0],deskMat);
+  const isOrchestrator=agent.id==="orchestrator";
+  const deskMat=mat(isOrchestrator?0x506271:0x43505a,.42,.38),metal=mat(0x1d2931,.36,.58);
+  box(g,[isOrchestrator?3.25:2.55,.18,isOrchestrator?1.25:1.1],[0,1.0,0],deskMat);
   box(g,[.12,.9,.12],[-.95,.48,-.34],metal);box(g,[.12,.9,.12],[.95,.48,-.34],metal);
   box(g,[.12,.9,.12],[-.95,.48,.34],metal);box(g,[.12,.9,.12],[.95,.48,.34],metal);
 
@@ -186,13 +193,18 @@ function buildStation(agent,index){
 
   const person=buildPerson(agent,index,color);g.add(person);room.agentAnim.set(agent.id,person.userData.anim);
 
-  const ring=new THREE.Mesh(new THREE.RingGeometry(1.45,1.58,64),new THREE.MeshBasicMaterial({color,transparent:true,opacity:agent.status==="offline"?.22:.52,side:THREE.DoubleSide}));
+  const ringRadius=isOrchestrator?1.85:1.45;
+  const ring=new THREE.Mesh(new THREE.RingGeometry(ringRadius,ringRadius+.12,64),new THREE.MeshBasicMaterial({color,transparent:true,opacity:agent.status==="offline"?.22:.48,side:THREE.DoubleSide}));
   ring.rotation.x=-Math.PI/2;ring.position.y=.075;ring.userData.stationRing=true;g.add(ring);
+  if(isOrchestrator){
+    const commandPad=new THREE.Mesh(new THREE.CylinderGeometry(2.15,2.15,.12,48),mat(0x263b48,.5,.28));
+    commandPad.position.y=.06;commandPad.receiveShadow=true;g.add(commandPad);
+  }
 
   const strip=box(g,[2.2,.025,.035],[0,.94,-.52],mat(color,.2,.4,color,1.8));strip.userData.pulse=true;
   const glow=new THREE.PointLight(color,agent.status==="offline"?.25:.65,3.5,2);glow.position.set(0,1.65,-.35);g.add(glow);
 
-  const hit=new THREE.Mesh(new THREE.BoxGeometry(3.1,3.1,2.7),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(isOrchestrator?3.8:3.1,3.1,2.7),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
   hit.position.set(0,1.45,.15);hit.userData.agentId=agent.id;g.add(hit);room.clickable.push(hit);
 
   room.scene.add(g);room.stationGroups.set(agent.id,g);
@@ -239,7 +251,7 @@ function focusAgent(id){
   room.desiredCamera.copy(p).add(new THREE.Vector3(4.7,4.2,6.5))
 }
 function selectAgent(id,focus=true){room.selectedAgentId=id;const a=room.agents.find(x=>x.id===id)||room.agents[0];updateInspector(a);for(const [k,t] of room.labels)t.classList.toggle("selected",k===id);if(focus)focusAgent(id)}
-function resetCamera(){room.tourActive=false;el("tourView")?.classList.remove("active");room.desiredTarget.set(0,1.35,-.3);room.desiredCamera.set(12.8,11.8,19.6)}
+function resetCamera(){room.tourActive=false;el("tourView")?.classList.remove("active");room.desiredTarget.set(0,1.30,-.85);room.desiredCamera.set(12.2,12.8,21.5)}
 function toggleTour(){room.tourActive=!room.tourActive;el("tourView").classList.toggle("active",room.tourActive);if(room.tourActive){room.tourIndex=0;room.tourNextAt=0}else resetCamera()}
 function updateTour(t){if(!room.tourActive||!room.agents.length||t<room.tourNextAt)return;const a=room.agents[room.tourIndex%room.agents.length];selectAgent(a.id,true);room.tourIndex=(room.tourIndex+1)%room.agents.length;room.tourNextAt=t+4.3}
 
