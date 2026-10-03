@@ -1,4 +1,4 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js";
 
 const el = (id) => document.getElementById(id);
 const statusLabel = {
@@ -423,13 +423,23 @@ function animate() {
 
   updateLabels();
   room.renderer.render(room.scene,room.camera);
+  if (document.documentElement.dataset.webglReady !== "true") {
+    document.documentElement.dataset.webglReady="true";
+    el("webglFallback").hidden=true;
+    el("renderStatus").textContent=(room.renderer.capabilities.isWebGL2?"WEBGL2":"WEBGL1")+" · 3D ACTIVE";
+  }
 }
 
 function init3D() {
   const canvas=el("roomCanvas");
   const fallback=el("webglFallback");
   try {
-    room.renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
+    const context =
+      canvas.getContext("webgl2", {antialias:true, alpha:false, powerPreference:"high-performance"}) ||
+      canvas.getContext("webgl", {antialias:true, alpha:false, powerPreference:"high-performance"}) ||
+      canvas.getContext("experimental-webgl", {antialias:true, alpha:false});
+    if (!context) throw new Error("Браузер не выдал WebGL-контекст");
+    room.renderer=new THREE.WebGLRenderer({canvas,context,antialias:true,powerPreference:"high-performance"});
     room.renderer.shadowMap.enabled=true;
     room.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     room.renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -450,7 +460,8 @@ function init3D() {
     setupInteractions();
     window.addEventListener("resize",resizeRenderer);
     el("resetView").addEventListener("click",resetCamera);
-    el("renderStatus").textContent="ONLINE";
+    el("renderStatus").textContent=room.renderer.capabilities.isWebGL2?"WEBGL2":"WEBGL1";
+    document.documentElement.dataset.webglReady="starting";
     animate();
   } catch(error) {
     fallback.hidden=false;
